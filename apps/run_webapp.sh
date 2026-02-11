@@ -34,6 +34,22 @@ fi
 
 mkdir -p "$RUNS_DIR" "$NPM_CACHE_DIR" "$VITE_CACHE_DIR"
 
+check_port_free() {
+  local port="$1"
+  local service_name="$2"
+  local env_name="$3"
+  if command -v lsof >/dev/null 2>&1; then
+    if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
+      echo "error: ${service_name} port ${port} is already in use."
+      echo "stop the existing process or run with ${env_name}=<new_port>."
+      exit 1
+    fi
+  fi
+}
+
+check_port_free "$BACKEND_PORT" "backend" "BACKEND_PORT"
+check_port_free "$FRONTEND_PORT" "frontend" "FRONTEND_PORT"
+
 echo "Starting backend on http://localhost:${BACKEND_PORT}"
 (
   cd "$BACKEND_DIR"
@@ -46,8 +62,9 @@ echo "Starting frontend on http://localhost:${FRONTEND_PORT}"
 (
   cd "$FRONTEND_DIR"
   NPM_CONFIG_CACHE="$NPM_CACHE_DIR" \
+    VITE_CACHE_DIR="$VITE_CACHE_DIR" \
     VITE_API_BASE="http://localhost:${BACKEND_PORT}/api" \
-    npm run dev -- --host 0.0.0.0 --port "$FRONTEND_PORT" --cacheDir "$VITE_CACHE_DIR"
+    npm run dev -- --host 0.0.0.0 --port "$FRONTEND_PORT"
 ) &
 FRONT_PID=$!
 
@@ -57,4 +74,14 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
-wait -n "$BACK_PID" "$FRONT_PID"
+while true; do
+  if ! kill -0 "$BACK_PID" 2>/dev/null; then
+    wait "$BACK_PID" 2>/dev/null || true
+    break
+  fi
+  if ! kill -0 "$FRONT_PID" 2>/dev/null; then
+    wait "$FRONT_PID" 2>/dev/null || true
+    break
+  fi
+  sleep 1
+done

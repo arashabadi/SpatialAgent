@@ -57,6 +57,89 @@ MODEL_OPTIONS = [
     "gemini-2.5-pro",
 ]
 
+WORKFLOW_LIBRARY = [
+    {
+        "key": "annotation",
+        "title": "Cell Type Annotation",
+        "summary": "Annotate clusters and assign interpretable cell identities.",
+        "when_to_use": (
+            "Use after standard QC and clustering when you need biologically defensible labels."
+        ),
+        "default_question": (
+            "Annotate cell populations, list marker genes per cluster, and flag uncertain labels."
+        ),
+        "suggested_outputs": [
+            "cluster marker table",
+            "annotation confidence notes",
+            "UMAP or spatial label plot",
+        ],
+    },
+    {
+        "key": "cci",
+        "title": "Cell-Cell Communication",
+        "summary": "Infer ligand-receptor signaling across cell populations.",
+        "when_to_use": (
+            "Use when your question is about interaction biology, signaling axes, or niche effects."
+        ),
+        "default_question": (
+            "Run CCI analysis, rank strongest ligand-receptor programs, and summarize key pathways."
+        ),
+        "suggested_outputs": [
+            "ranked ligand-receptor interactions",
+            "interaction network figure",
+            "pathway-focused interpretation",
+        ],
+    },
+    {
+        "key": "spatial_domain",
+        "title": "Spatial Domain Detection",
+        "summary": "Identify tissue domains, neighborhoods, and spatial niches.",
+        "when_to_use": (
+            "Use when you need region-level structure beyond transcriptomic clustering."
+        ),
+        "default_question": (
+            "Detect spatial domains and interpret their dominant cell programs and boundaries."
+        ),
+        "suggested_outputs": [
+            "domain assignment table",
+            "spatial domain map",
+            "domain-level marker summary",
+        ],
+    },
+    {
+        "key": "panel_design",
+        "title": "Targeted Panel Design",
+        "summary": "Prioritize marker genes for targeted assay panels.",
+        "when_to_use": (
+            "Use during experiment planning when selecting robust marker genes for validation."
+        ),
+        "default_question": (
+            "Propose a marker panel with evidence, specificity checks, and practical caveats."
+        ),
+        "suggested_outputs": [
+            "candidate marker list",
+            "evidence-backed gene ranking",
+            "risk notes for ambiguous markers",
+        ],
+    },
+    {
+        "key": "exploratory",
+        "title": "Exploratory Data Triage",
+        "summary": "Rapidly assess data quality and actionable next analyses.",
+        "when_to_use": (
+            "Use at project start to decide whether a dataset is analysis-ready."
+        ),
+        "default_question": (
+            "Run QC triage, summarize key risks, and propose next analysis steps."
+        ),
+        "suggested_outputs": [
+            "QC checklist",
+            "risk/issue list",
+            "recommended next workflow",
+        ],
+    },
+]
+
 RUN_STATUS = Literal["queued", "running", "completed", "failed", "blocked"]
 
 QUERY_BLOCKLIST = [
@@ -158,6 +241,22 @@ class ArtifactInfo(BaseModel):
     path: str
     size_bytes: int
     modified_at: str
+
+
+class WorkflowTemplate(BaseModel):
+    key: str
+    title: str
+    summary: str
+    when_to_use: str
+    default_question: str
+    suggested_outputs: List[str]
+
+
+class SafetyProfile(BaseModel):
+    safe_mode_default: bool
+    blocked_capabilities: List[str]
+    query_block_patterns: List[str]
+    notes: List[str]
 
 
 app = FastAPI(title="SpatialAgent Web API", version="1.0.0")
@@ -390,6 +489,28 @@ def health() -> Dict[str, str]:
 @app.get("/api/models", response_model=List[ModelInfo])
 def list_models() -> List[ModelInfo]:
     return [_model_env_status(model) for model in MODEL_OPTIONS]
+
+
+@app.get("/api/workflows", response_model=List[WorkflowTemplate])
+def list_workflows() -> List[WorkflowTemplate]:
+    return [WorkflowTemplate(**item) for item in WORKFLOW_LIBRARY]
+
+
+@app.get("/api/safety", response_model=SafetyProfile)
+def safety_profile() -> SafetyProfile:
+    return SafetyProfile(
+        safe_mode_default=True,
+        blocked_capabilities=[
+            "Direct bash execution via execute_bash tool",
+            "Queries matching high-risk command/malware patterns",
+        ],
+        query_block_patterns=[pattern.pattern for pattern in QUERY_BLOCKLIST],
+        notes=[
+            "Safe mode still allows Python tool execution for analysis tasks.",
+            "Safe mode is a policy guard, not a hardened OS-level sandbox.",
+            "Disable safe mode only when you trust the prompt and runtime environment.",
+        ],
+    )
 
 
 @app.get("/api/runs", response_model=List[RunSummary])

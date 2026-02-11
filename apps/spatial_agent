@@ -1,7 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve symlinks so the command works when linked into conda env bin.
+SOURCE_PATH="${BASH_SOURCE[0]}"
+while [[ -L "$SOURCE_PATH" ]]; do
+  SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
+  LINK_TARGET="$(readlink "$SOURCE_PATH")"
+  if [[ "$LINK_TARGET" == /* ]]; then
+    SOURCE_PATH="$LINK_TARGET"
+  else
+    SOURCE_PATH="$SOURCE_DIR/$LINK_TARGET"
+  fi
+done
+
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
+ROOT_DIR="${SPATIALAGENT_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+
+if [[ ! -f "$ROOT_DIR/apps/run_webapp.sh" ]] || [[ ! -f "$ROOT_DIR/apps/setup_webapp.sh" ]]; then
+  echo "error: could not locate SpatialAgent repo root from launcher."
+  echo "set SPATIALAGENT_HOME to your repo path and retry."
+  exit 1
+fi
 
 usage() {
   cat <<EOF

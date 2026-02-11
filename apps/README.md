@@ -12,6 +12,8 @@ This directory adds a clean web interface for non-coder users, without changing 
 
 - Keep all app code isolated under `./apps`
 - Default to **safe mode** for browser users
+- Include guided workflow templates for non-coder users (annotation, CCI, spatial domains, panel design)
+- Include an **HPC batch handoff** mode that generates a runnable Python script when browser-based execution is impractical
 - Keep each run output in a dedicated folder for traceability
 - Polling-based UX (simple and robust on localhost)
 
