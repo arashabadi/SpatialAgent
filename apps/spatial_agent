@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+  cat <<EOF
+SpatialAgent Web CLI
+
+Usage:
+  spatial_agent setup    Install web app dependencies and CLI link
+  spatial_agent start    Start backend + frontend on localhost
+  spatial_agent help     Show this help
+EOF
+}
+
+COMMAND="${1:-help}"
+shift || true
+
+case "$COMMAND" in
+  setup)
+    exec "$ROOT_DIR/apps/setup_webapp.sh" "$@"
+    ;;
+  start)
+    exec "$ROOT_DIR/apps/run_webapp.sh" "$@"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "Unknown command: $COMMAND"
+    usage
+    exit 1
+    ;;
+esac

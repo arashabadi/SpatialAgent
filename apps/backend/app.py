@@ -34,7 +34,9 @@ from spatialagent.agent import (  # noqa: E402
 from spatialagent.agent.utils import load_all_tools  # noqa: E402
 
 
-RUNS_DIR = REPO_ROOT / "apps" / "runs"
+RUNS_DIR = Path(
+    os.getenv("SPATIALAGENT_WEB_RUNS_DIR", str(REPO_ROOT / "apps" / "runs"))
+).resolve()
 DATA_DIR = REPO_ROOT / "data"
 FRONTEND_DIST = REPO_ROOT / "apps" / "frontend" / "dist"
 

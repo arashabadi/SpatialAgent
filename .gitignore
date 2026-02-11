@@ -1,5 +1,6 @@
 .vscode
 .DS_Store
+.Rhistory
 
 models
 __pycache__/
@@ -7,3 +8,16 @@ __pycache__/
 *.egg-info/
 wandb
 experiments
+
+# Web app generated artifacts
+apps/frontend/node_modules/
+apps/frontend/package-lock.json
+apps/frontend/dist/
+apps/frontend/.vite/
+apps/backend/__pycache__/
+apps/backend/.pytest_cache/
+apps/backend/.mypy_cache/
+apps/backend/*.log
+apps/.runtime/
+apps/runs/*
+!apps/runs/.gitkeep

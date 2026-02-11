@@ -33,12 +33,20 @@ export ANTHROPIC_API_KEY=your_key
 ./apps/setup_webapp.sh
 
 # Start backend + frontend together
-./apps/run_webapp.sh
+spatial_agent start
 ```
 
 Default URLs:
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:8000/api`
+
+After `./apps/setup_webapp.sh`, the `spatial_agent` command is linked into your active conda environment.
+If not linked, use: `./apps/spatial_agent start`
+
+Generated runtime files are written under `apps/.runtime/` (gitignored), including:
+- npm cache
+- Vite cache
+- web run outputs
 
 ## Backend setup (manual)
 

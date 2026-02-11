@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/apps/backend"
 FRONTEND_DIR="$ROOT_DIR/apps/frontend"
+RUNTIME_DIR="$ROOT_DIR/apps/.runtime"
+RUNS_DIR="$RUNTIME_DIR/runs"
+NPM_CACHE_DIR="$RUNTIME_DIR/npm-cache"
+VITE_CACHE_DIR="$RUNTIME_DIR/vite-cache"
 
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
@@ -28,17 +32,22 @@ if [[ ! -d "$FRONTEND_DIR/node_modules" ]]; then
   exit 1
 fi
 
+mkdir -p "$RUNS_DIR" "$NPM_CACHE_DIR" "$VITE_CACHE_DIR"
+
 echo "Starting backend on http://localhost:${BACKEND_PORT}"
 (
   cd "$BACKEND_DIR"
-  python -m uvicorn app:app --reload --host 0.0.0.0 --port "$BACKEND_PORT"
+  SPATIALAGENT_WEB_RUNS_DIR="$RUNS_DIR" \
+    python -m uvicorn app:app --reload --host 0.0.0.0 --port "$BACKEND_PORT"
 ) &
 BACK_PID=$!
 
 echo "Starting frontend on http://localhost:${FRONTEND_PORT}"
 (
   cd "$FRONTEND_DIR"
-  VITE_API_BASE="http://localhost:${BACKEND_PORT}/api" npm run dev -- --host 0.0.0.0 --port "$FRONTEND_PORT"
+  NPM_CONFIG_CACHE="$NPM_CACHE_DIR" \
+    VITE_API_BASE="http://localhost:${BACKEND_PORT}/api" \
+    npm run dev -- --host 0.0.0.0 --port "$FRONTEND_PORT" --cacheDir "$VITE_CACHE_DIR"
 ) &
 FRONT_PID=$!
 
