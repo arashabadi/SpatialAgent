@@ -15,7 +15,32 @@ This directory adds a clean web interface for non-coder users, without changing 
 - Keep each run output in a dedicated folder for traceability
 - Polling-based UX (simple and robust on localhost)
 
-## Backend setup
+## One-flow setup (recommended)
+
+Use the original repository flow, then install/run web UI in one place:
+
+```bash
+# From repo root
+./setup_env.sh
+conda activate spatial_agent
+
+# Set one API key matching your chosen model
+export ANTHROPIC_API_KEY=your_key
+# or export OPENAI_API_KEY=your_key
+# or export GOOGLE_API_KEY=your_key
+
+# Web app setup (backend + frontend deps)
+./apps/setup_webapp.sh
+
+# Start backend + frontend together
+./apps/run_webapp.sh
+```
+
+Default URLs:
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000/api`
+
+## Backend setup (manual)
 
 From repo root:
 
@@ -27,7 +52,7 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8000
 
 The backend imports `spatialagent` from the repo root.
 
-## Frontend setup
+## Frontend setup (manual)
 
 From repo root:
 
