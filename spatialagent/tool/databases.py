@@ -151,7 +151,7 @@ def search_panglao(
         output_lines.append(f"\nSaved to: {save_csv}")
 
     output = "\n".join(output_lines)
-    print(output)
+    # print(output)  # Removed: duplicates output in agent's observation when tool is called via execute_python
     return output
 
 
@@ -163,6 +163,8 @@ def search_panglao(
 def search_czi_datasets(
     query: Annotated[str, Field(description="Query describing tissue, condition, and organism (e.g., 'liver, breast cancer, Homo sapiens')")],
     n_datasets: Annotated[int, Field(description="Number of top datasets to return")] = 1,
+    organism: Annotated[str, Field(description="Filter by organism (e.g., 'Mus musculus', 'Homo sapiens'). Optional.")] = None,
+    tissue: Annotated[str, Field(description="Filter by tissue keyword (e.g., 'lung', 'brain'). Matches against tissue and tissue_general columns. Optional.")] = None,
 ) -> str:
     """Search CZI CELLxGENE Census for reference single-cell datasets.
 
@@ -204,6 +206,25 @@ def search_czi_datasets(
 
     df = pd.read_csv(metadata_path)
 
+    # Pre-filter by organism and tissue before embedding search
+    if organism:
+        mask = df["organism"] == organism
+        df_filtered = df[mask]
+        if len(df_filtered) >= n_datasets:
+            df = df_filtered
+
+    if tissue:
+        tissue_lower = tissue.lower()
+        mask = (
+            df["tissue"].str.lower().str.contains(tissue_lower, na=False) |
+            df["tissue_general"].str.lower().str.contains(tissue_lower, na=False)
+        )
+        df_filtered = df[mask]
+        if len(df_filtered) >= n_datasets:
+            df = df_filtered
+
+    df = df.reset_index(drop=True)
+
     # Create descriptions for each dataset
     df["description"] = (
         df["organism"].astype(str) + "; " +
@@ -218,7 +239,13 @@ def search_czi_datasets(
     query_embedding = _embed_with_retry(llm_embed_query, [query])
 
     # Check for cached description embeddings (use effective_model for cache key)
-    cache_key = _get_cache_key("czi_census", effective_model, len(descriptions))
+    # Include filter params in database identifier to avoid cache collisions
+    db_id = "czi_census"
+    if organism:
+        db_id += f"_{organism.replace(' ', '_')}"
+    if tissue:
+        db_id += f"_{tissue.lower()}"
+    cache_key = _get_cache_key(db_id, effective_model, len(descriptions))
     desc_embeddings = _load_cached_embeddings(cache_key)
 
     if desc_embeddings is None:
@@ -249,7 +276,6 @@ def search_czi_datasets(
         results.append(result_str)
 
     output = "\n".join(results)
-    print(output)
     return output
 
 
@@ -364,7 +390,7 @@ def search_cellmarker2(
         output_lines.append(f"\nSaved to: {save_csv}")
 
     output = "\n".join(output_lines)
-    print(output)
+    # print(output)  # Removed: duplicates output in agent's observation when tool is called via execute_python
     return output
 
 
@@ -411,7 +437,6 @@ def extract_czi_markers(
 
     if exists(save_csv):
         msg = f"CZI reference data already exists at {save_csv}"
-        print(msg)
         return msg
 
     print(f"[extract_czi_markers] Processing {dataset_id}...")
@@ -503,7 +528,6 @@ def extract_czi_markers(
     if n_without_markers > 0:
         msg += f"\nNote: {n_with_markers} cell types have marker genes from CellGuide, {n_without_markers} do not (may need PanglaoDB/CellMarker2 lookup)."
 
-    print(msg)
     return msg
 
 
@@ -689,7 +713,7 @@ def query_tissue_expression(
             results.append(f"  {tissue}: {median_tpm:.2f} TPM")
 
         output = "\n".join(results)
-        print(output)
+        # print(output)  # Removed: duplicates output in agent's observation when tool is called via execute_python
         return output
 
     except Exception as e:
@@ -763,7 +787,7 @@ def query_celltype_genesets(
             results.append(f"    Marker genes: {', '.join(genes[:10])}")
 
         output = "\n".join(results)
-        print(output)
+        # print(output)  # Removed: duplicates output in agent's observation when tool is called via execute_python
         return output
 
     except Exception as e:
@@ -842,7 +866,7 @@ def validate_genes_expression(
         results.append(f"\nNot found in ARCHS4 ({len(not_found)}): {', '.join(not_found)}")
 
     output = "\n".join(results)
-    print(output)
+    # print(output)  # Removed: duplicates output in agent's observation when tool is called via execute_python
     return output
 
 
@@ -1139,5 +1163,5 @@ def query_disease_genes(
     results.append(f"\nAll genes: {', '.join(sorted(all_genes))}")
 
     output = "\n".join(results)
-    print(output)
+    # print(output)  # Removed: duplicates output in agent's observation when tool is called via execute_python
     return output
